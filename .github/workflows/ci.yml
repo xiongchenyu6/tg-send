@@ -33,3 +33,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v16
       - run: nix build --print-build-logs
+
+  dependabot-merge:
+    # Merge Dependabot PRs once the checks above pass. GITHUB_TOKEN is enough
+    # for dependency bumps; PRs that edit .github/workflows (Actions bumps) need
+    # DEPENDABOT_MERGE_TOKEN, a PAT with the Workflows permission stored as a
+    # Dependabot secret (Dependabot runs cannot read ordinary Actions secrets).
+    needs: [rust, nix]
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge the Dependabot PR
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_MERGE_TOKEN || github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge "$PR_URL" --squash
